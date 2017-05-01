@@ -70,3 +70,57 @@ if test_undistort == True:
         ax2.set_title('Undistorted Image', fontsize=50)
         plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
         f.savefig("camera_undistorted/" + calibration_filename)
+
+###################################################################################################
+## Load and Undistort Test Images
+###################################################################################################
+
+test_images_filenames = glob.glob("test_images/test*.jpg")
+
+test_images = []
+
+for test_image_filename in test_images_filenames:
+    test_image = mpimg.imread(test_image_filename)
+    undistorted_test_image = cv2.undistort(test_image, camera_mtx, dist_coeffs, None, camera_mtx)
+    test_images.append(undistorted_test_image)
+
+    # Plot original and undistorted image
+    sbs.set_style("dark")
+    f, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 9))
+    #f.tight_layout()
+    ax1.imshow(test_image)
+    ax1.set_title('Original Image', fontsize=50)
+    ax2.imshow(undistorted_test_image)
+    ax2.set_title('Undistorted Image', fontsize=50)
+    plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
+    f.savefig("test_undistorted/" + test_image_filename)
+
+###################################################################################################
+## Thresholding
+###################################################################################################
+
+def threshold_x_gradient (img, sobel_size = 3, threshold = [0, 255]):
+    grayscale = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    
+    sobel_x = cv2.Sobel(grayscale, cv2.CV_64F, 1, 0)
+    abs_sobel_x = np.absolute(sobel_x)
+    scaled_sobel_x = np.uint(255 * abs_sobel_x / np.max(abs_sobel_x))
+
+    binary_output = np.zeros_like(scaled_sobel_x)
+    binary_output[(scaled_sobel_x >= threshold[0]) & (scaled_sobel <= threshold[1])] = 1
+
+    return binary_output
+
+## TODO
+
+###################################################################################################
+## Perspective Transform
+###################################################################################################
+
+## TODO
+
+###################################################################################################
+## Finding Lines
+###################################################################################################
+
+## TODO
