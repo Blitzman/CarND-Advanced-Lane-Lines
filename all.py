@@ -62,13 +62,11 @@ if test_undistort == True:
 
         # Plot original and undistorted image
         sbs.set_style("dark")
-        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 9))
-        #f.tight_layout()
+        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
         ax1.imshow(calibration_img)
-        ax1.set_title('Original Image', fontsize=50)
+        ax1.set_title('Original Image')
         ax2.imshow(undistorted)
-        ax2.set_title('Undistorted Image', fontsize=50)
-        plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
+        ax2.set_title('Undistorted Image')
         f.savefig("camera_undistorted/" + calibration_filename)
 
 ###################################################################################################
@@ -102,13 +100,12 @@ for test_image, test_image_filename in zip(test_images, test_images_filenames):
 
     # Plot original and undistorted image
     sbs.set_style("dark")
-    f, (ax1, ax2) = plt.subplots(1, 2, figsize=(24, 9))
+    f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
     #f.tight_layout()
     ax1.imshow(test_image)
-    ax1.set_title('Original Image', fontsize=50)
+    ax1.set_title('Original Image')
     ax2.imshow(undistorted_image)
-    ax2.set_title('Undistorted Image', fontsize=50)
-    plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
+    ax2.set_title('Undistorted Image')
     f.savefig("test_undistorted/" + test_image_filename)
 
 ###################################################################################################
@@ -123,11 +120,11 @@ def threshold_x_gradient (img, sobel_size = 3, threshold = [0, 255]):
     scaled_sobel_x = np.uint(255 * abs_sobel_x / np.max(abs_sobel_x))
 
     binary_output = np.zeros_like(scaled_sobel_x)
-    binary_output[(scaled_sobel_x >= threshold[0]) & (scaled_sobel <= threshold[1])] = 1
+    binary_output[(scaled_sobel_x >= threshold[0]) & (scaled_sobel_x <= threshold[1])] = 1
 
     return binary_output
 
-def threshold_hls_color_gradient (img, threshold = [0, 255]):
+def threshold_hls_s_gradient (img, threshold = [0, 255]):
     hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
     s_channel = hls[:, :, 2]
 
@@ -144,7 +141,23 @@ print("Thresholding...")
 for undistorted_image, test_image_filename in zip(undistorted_images, test_images_filenames):
 
     print("Thresholding " + test_image_filename)
-    ## TODO
+    
+    x_binary = threshold_x_gradient(undistorted_image, 3, [20, 100])
+    s_binary = threshold_hls_s_gradient(undistorted_image, [170, 255])
+
+    colored_binary = np.dstack((np.zeros_like(x_binary), x_binary, s_binary))
+
+    thresholded_image = np.zeros_like(x_binary)
+    thresholded_image[(x_binary == 1) | (s_binary == 1)] = 1
+    thresholded_images.append(thresholded_image)
+
+    sbs.set_style("dark")
+    f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+    ax1.set_title('Stacked Thresholds')
+    ax1.imshow(np.uint8(colored_binary * 255.999))
+    ax2.set_title('Original Image')
+    ax2.imshow(undistorted_image)
+    f.savefig("test_thresholded/" + test_image_filename)
 
 ###################################################################################################
 ## Perspective Transform
