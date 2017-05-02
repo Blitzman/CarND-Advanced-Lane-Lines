@@ -72,17 +72,33 @@ if test_undistort == True:
         f.savefig("camera_undistorted/" + calibration_filename)
 
 ###################################################################################################
-## Load and Undistort Test Images
+## Load Test Images
 ###################################################################################################
 
 test_images_filenames = glob.glob("test_images/test*.jpg")
-
 test_images = []
 
 for test_image_filename in test_images_filenames:
+
+    print("Loading "  + test_image_filename)
     test_image = mpimg.imread(test_image_filename)
-    undistorted_test_image = cv2.undistort(test_image, camera_mtx, dist_coeffs, None, camera_mtx)
-    test_images.append(undistorted_test_image)
+    test_images.append(test_image)
+
+###################################################################################################
+## Undistort Test Images
+###################################################################################################
+
+undistorted_images = []
+
+print()
+print("Undistorting...")
+
+for test_image, test_image_filename in zip(test_images, test_images_filenames):
+
+    print("Undistorting " + test_image_filename)
+
+    undistorted_image = cv2.undistort(test_image, camera_mtx, dist_coeffs, None, camera_mtx)
+    undistorted_images.append(undistorted_image)
 
     # Plot original and undistorted image
     sbs.set_style("dark")
@@ -90,7 +106,7 @@ for test_image_filename in test_images_filenames:
     #f.tight_layout()
     ax1.imshow(test_image)
     ax1.set_title('Original Image', fontsize=50)
-    ax2.imshow(undistorted_test_image)
+    ax2.imshow(undistorted_image)
     ax2.set_title('Undistorted Image', fontsize=50)
     plt.subplots_adjust(left=0., right=1, top=0.9, bottom=0.)
     f.savefig("test_undistorted/" + test_image_filename)
@@ -111,7 +127,24 @@ def threshold_x_gradient (img, sobel_size = 3, threshold = [0, 255]):
 
     return binary_output
 
-## TODO
+def threshold_hls_color_gradient (img, threshold = [0, 255]):
+    hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+    s_channel = hls[:, :, 2]
+
+    binary_output = np.zeros_like(s_channel)
+    binary_output[(s_channel >= threshold[0]) & (s_channel <= threshold[1])] = 1
+
+    return binary_output
+
+thresholded_images = []
+
+print()
+print("Thresholding...")
+
+for undistorted_image, test_image_filename in zip(undistorted_images, test_images_filenames):
+
+    print("Thresholding " + test_image_filename)
+    ## TODO
 
 ###################################################################################################
 ## Perspective Transform
