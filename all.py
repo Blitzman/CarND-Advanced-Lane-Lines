@@ -163,7 +163,52 @@ for undistorted_image, test_image_filename in zip(undistorted_images, test_image
 ## Perspective Transform
 ###################################################################################################
 
-## TODO
+def perspective_transform(img, src_points, dst_points):
+
+    img_size = (img.shape[1], img.shape[0])
+    src = np.float32(src_points)
+    dst = np.float32(dst_points)
+
+    M = cv2.getPerspectiveTransform(src, dst)
+    warped = cv2.warpPerspective(img, M, img_size)
+
+    return warped, M
+
+transformed_images = []
+transformed_matrices = []
+
+src_tl = [570, 470]
+src_tr = [720, 470]
+src_br = [1130, 720]
+src_bl = [200, 720]
+
+dst_tl = [320, 0]
+dst_tr = [980, 0]
+dst_br = [980, 720]
+dst_bl = [320, 720]
+
+src_points = [src_tl, src_tr, src_br, src_bl]
+dst_points = [dst_tl, dst_tr, dst_br, dst_bl]
+
+for thresholded_image, test_image_filename in zip(thresholded_images, test_images_filenames):
+
+    print("Transforming " + test_image_filename)
+
+    thresholded_rgb = np.dstack((np.zeros_like(thresholded_image), thresholded_image, thresholded_image, thresholded_image))
+    thresholded_rgb = (np.uint8(thresholded_rgb * 255.999))
+
+    transformed_image, transformed_m = perspective_transform(thresholded_rgb, src_points, dst_points)
+
+    transformed_images.append(transformed_image)
+    transformed_matrices.append(transformed_m)
+
+    sbs.set_style("dark")
+    f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+    ax1.set_title('Transformed Image')
+    ax1.imshow(transformed_image)
+    ax2.set_title('Original Image')
+    ax2.imshow(thresholded_image)
+    f.savefig("test_transformed/" + test_image_filename)
 
 ###################################################################################################
 ## Finding Lines
