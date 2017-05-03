@@ -199,13 +199,16 @@ for thresholded_image, test_image_filename in zip(thresholded_images, test_image
 
     transformed_image, transformed_m = perspective_transform(thresholded_rgb, src_points, dst_points)
 
-    transformed_images.append(transformed_image)
+    transformed_binary = np.zeros_like(thresholded_image)
+    transformed_binary[(transformed_image[:, :, 0] > 0) | (transformed_image[:, :, 1] > 0) | (transformed_image[:, :, 2] > 0)] = 1 
+
+    transformed_images.append(transformed_binary)
     transformed_matrices.append(transformed_m)
 
     sbs.set_style("dark")
     f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
     ax1.set_title('Transformed Image')
-    ax1.imshow(transformed_image)
+    ax1.imshow(np.uint8(transformed_binary * 255.999))
     ax2.set_title('Original Image')
     ax2.imshow(thresholded_image)
     f.savefig("test_transformed/" + test_image_filename)
