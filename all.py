@@ -385,3 +385,30 @@ for line_image, left_line, right_line, test_image_filename in zip(lines_images, 
 
     print("Curvature left: " + str(left_line.curvature) + " meters")
     print("Curvature right: " + str(right_line.curvature) + " meters")
+
+###################################################################################################
+## Reprojection
+###################################################################################################
+
+print()
+print("Reprojection...")
+
+for undistorted_image, transformed_image, transformed_matrix, left_line, right_line, test_image_filename in zip(undistorted_images, transformed_images, transformed_matrices, left_lines, right_lines, test_images_filenames):
+    
+    warp_zero = np.zeros_like(transformed_image).astype(np.uint8)
+    color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
+
+    points_left = np.array([np.transpose(np.vstack([left_line.bestx, plot_y]))])
+    points_right = np.array([np.flipud(np.transpose(np.vstack([right_line.bestx, plot_y])))])
+    points = np.hstack((points_left, points_right))
+
+    cv2.fillPoly(color_warp, np.int_([points]), (0, 255, 0))
+
+    new_warp = cv2.warpPerspective(color_warp, np.linalg.inv(transformed_matrix), (transformed_image.shape[1], transformed_image.shape[0]))
+
+    result = cv2.addWeighted(undistorted_image, 1, new_warp, 0.3, 0)
+
+    f = plt.figure()
+    plt.imshow(result)
+    f.savefig("test_poly/" + test_image_filename)
+
