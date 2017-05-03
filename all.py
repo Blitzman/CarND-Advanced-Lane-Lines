@@ -153,10 +153,10 @@ for undistorted_image, test_image_filename in zip(undistorted_images, test_image
 
     sbs.set_style("dark")
     f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
-    ax1.set_title('Stacked Thresholds')
-    ax1.imshow(np.uint8(colored_binary * 255.999))
-    ax2.set_title('Original Image')
-    ax2.imshow(undistorted_image)
+    ax1.set_title('Original Image')
+    ax1.imshow(undistorted_image)
+    ax2.set_title('Stacked Thresholds')
+    ax2.imshow(np.uint8(colored_binary * 255.999))
     f.savefig("test_thresholded/" + test_image_filename)
 
 ###################################################################################################
@@ -207,14 +207,120 @@ for thresholded_image, test_image_filename in zip(thresholded_images, test_image
 
     sbs.set_style("dark")
     f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
-    ax1.set_title('Transformed Image')
-    ax1.imshow(np.uint8(transformed_binary * 255.999))
-    ax2.set_title('Original Image')
-    ax2.imshow(thresholded_image)
+    ax1.set_title('Original Image')
+    ax1.imshow(thresholded_image)
+    ax2.set_title('Transformed Image')
+    ax2.imshow(np.uint8(transformed_binary * 255.999))
     f.savefig("test_transformed/" + test_image_filename)
 
 ###################################################################################################
 ## Finding Lines
 ###################################################################################################
+
+def find_peaks (img, filename = None):
+    
+    histogram = np.sum(img[img.shape[0]//2:, :], axis = 0)
+
+    m = np.int(histogram.shape[0]/2)
+    l = np.argmax(histogram[:m])
+    r = np.argmax(histogram[m:]) + m
+
+    if (filename != None):
+        sbs.set_style("dark")
+        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+        ax1.set_title('Original Image')
+        ax1.imshow(np.uint8(img * 255.999))
+        plt.plot(histogram)
+        ax2.set_title('Histogram')
+        ax2.imshow(np.uint8(img * 255.999))
+        f.savefig("test_histogram/" + filename)
+
+    return m, l, r
+
+def sliding_window_lines (img, left, right, n_windows = 9, margin = 100, minpix = 100):
+
+
+    window_height = np.int(img.shape[0] / n_windows)
+
+    nonzero = img.nonzero()
+    nonzero_y = np.array(nonzero[0])
+    nonzero_x = np.array(nonzero[1])
+
+    left_current = left
+    right_current = right
+
+    left_lane_indices = []
+    right_lane_indices = []
+
+    left_rects = []
+    right_rects = []
+
+    for window in range(n_windows):
+
+        window_y_low = img.shape[0] - (window + 1) * window_height
+        window_y_high = img.shape[0] - window * window_height
+        window_x_left_low = left_current - margin
+        window_x_left_high = left_current + margin
+        window_x_right_low = right_current - margin
+        window_x_right_high = right_current + margin
+
+        left_rects.append([(window_x_left_low, window_y_low), (window_x_left_high, window_y_high)])
+        right_rects.append([(window_x_right_low, window_y_low), (window_x_right_high, window_y_high)])
+
+        #cv2.rectangle(output_image, (window_x_left_low, window_y_low), (window_x_left_high, window_y_high), (0, 255, 0), 2)
+        #cv2.rectangle(output_image, (window_x_right_low, window_y_low), (window_x_right_high, window_y_high), (0, 255, 0), 2)
+
+        good_left_indices = ((nonzero_y >= window_y_low) & (nonzero_y < window_y_high) & (nonzero_x >= window_x_left_low) & (nonzero_x < window_x_left_high)).nonzero()[0]
+        good_right_indices = ((nonzero_y >= window_y_low) & (nonzero_y < window_y_high) & (nonzero_x >= window_x_right_low) & (nonzero_x < window_x_right_high)).nonzero()[0]
+
+        left_lane_indices.append(good_left_indices)
+        right_lane_indices.append(good_right_indices)
+
+        if len(good_left_indices) > minpix:
+            left_current = np.int(np.mean(nonzero_x[good_left_indices]))
+        if len(good_right_indices) > minpix:
+            right_current = np.int(np.mean(nonzero_x[good_right_indices]))
+
+    left_lane_indices = np.concatenate(left_lane_indices)
+    right_lane_indices = np.concatenate(right_lane_indices)
+
+    left_x = nonzero_x[left_lane_indices]
+    left_y = nonzero_y[left_lane_indices]
+    right_x = nonzero_x[right_lane_indices]
+    right_y = nonzero_y[right_lane_indices]
+
+    return left_rects, left_x, left_y, right_rects, right_x, right_y
+
+
+for transformed_image, test_image_filename in zip(transformed_images, test_images_filenames):
+
+    print("Finding lines " + test_image_filename)
+
+    mid, left, right = find_peaks(transformed_image, test_image_filename)
+    left_r, left_x, left_y, right_r, right_x, right_y = sliding_window_lines(transformed_image, left, right)
+
+    lines_image = (np.dstack((transformed_image, transformed_image, transformed_image)) * 255).astype(np.uint8).copy()
+
+    for left_rect, right_rect in zip(left_r, right_r):
+        cv2.rectangle(lines_image, left_rect[0], left_rect[1], (0, 255, 0), 2)
+        cv2.rectangle(lines_image, right_rect[0], right_rect[1], (0, 255, 0), 2)
+
+    left_fit = np.polyfit(left_y, left_x, 2)
+    right_fit = np.polyfit(right_y, right_x, 2)
+
+    plot_y = np.linspace(0, transformed_image.shape[0]-1, transformed_image.shape[0])
+    left_fit_x = left_fit[0] * plot_y ** 2 + left_fit[1] * plot_y + left_fit[2]
+    right_fit_x = right_fit[0] * plot_y ** 2 + right_fit[1] * plot_y + right_fit[2]
+
+    lines_image[left_y, left_x] = [255, 0 ,0]
+    lines_image[right_y, right_x] = [0, 0, 255]
+
+    f = plt.figure()
+    plt.imshow(lines_image)
+    plt.plot(left_fit_x, plot_y, color='yellow')
+    plt.plot(right_fit_x, plot_y, color='yellow')
+    plt.xlim(0, 1280)
+    plt.ylim(720, 0)
+    f.savefig("test_lines/" + test_image_filename)
 
 ## TODO
