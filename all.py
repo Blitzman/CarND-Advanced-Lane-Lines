@@ -6,6 +6,19 @@ import seaborn as sbs
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
+class Line():
+    def __init__ (self):
+        self.detected = False
+        self.recent_xfitted = []
+        self.bestx = None
+        self.best_fit = None
+        self.current_fit = [np.array([False])]
+        self.radius_of_curvature = None
+        self.line_base_pos = None
+        self.diffs = np.array([0, 0, 0], dtype='float')
+        self.allx = None
+        self.ally = None
+
 ###################################################################################################
 ## Camera Calibration
 ###################################################################################################
@@ -73,7 +86,7 @@ if test_undistort == True:
 ## Load Test Images
 ###################################################################################################
 
-test_images_filenames = glob.glob("test_images/test*.jpg")
+test_images_filenames = glob.glob("test_images/*.jpg")
 test_images = []
 
 for test_image_filename in test_images_filenames:
@@ -163,6 +176,9 @@ for undistorted_image, test_image_filename in zip(undistorted_images, test_image
 ## Perspective Transform
 ###################################################################################################
 
+print()
+print("Perspective transformations...")
+
 def perspective_transform(img, src_points, dst_points):
 
     img_size = (img.shape[1], img.shape[0])
@@ -217,6 +233,9 @@ for thresholded_image, test_image_filename in zip(thresholded_images, test_image
 ## Finding Lines
 ###################################################################################################
 
+print()
+print("Line finding...")
+
 def find_peaks (img, filename = None):
     
     histogram = np.sum(img[img.shape[0]//2:, :], axis = 0)
@@ -238,7 +257,6 @@ def find_peaks (img, filename = None):
     return m, l, r
 
 def sliding_window_lines (img, left, right, n_windows = 9, margin = 100, minpix = 100):
-
 
     window_height = np.int(img.shape[0] / n_windows)
 
@@ -267,9 +285,6 @@ def sliding_window_lines (img, left, right, n_windows = 9, margin = 100, minpix 
         left_rects.append([(window_x_left_low, window_y_low), (window_x_left_high, window_y_high)])
         right_rects.append([(window_x_right_low, window_y_low), (window_x_right_high, window_y_high)])
 
-        #cv2.rectangle(output_image, (window_x_left_low, window_y_low), (window_x_left_high, window_y_high), (0, 255, 0), 2)
-        #cv2.rectangle(output_image, (window_x_right_low, window_y_low), (window_x_right_high, window_y_high), (0, 255, 0), 2)
-
         good_left_indices = ((nonzero_y >= window_y_low) & (nonzero_y < window_y_high) & (nonzero_x >= window_x_left_low) & (nonzero_x < window_x_left_high)).nonzero()[0]
         good_right_indices = ((nonzero_y >= window_y_low) & (nonzero_y < window_y_high) & (nonzero_x >= window_x_right_low) & (nonzero_x < window_x_right_high)).nonzero()[0]
 
@@ -291,6 +306,11 @@ def sliding_window_lines (img, left, right, n_windows = 9, margin = 100, minpix 
 
     return left_rects, left_x, left_y, right_rects, right_x, right_y
 
+lines_images = []
+left_lines = []
+right_lines = []
+
+plot_y = np.linspace(0, transformed_image[0].shape[0]-1, transformed_image[0].shape[0])
 
 for transformed_image, test_image_filename in zip(transformed_images, test_images_filenames):
 
@@ -308,12 +328,28 @@ for transformed_image, test_image_filename in zip(transformed_images, test_image
     left_fit = np.polyfit(left_y, left_x, 2)
     right_fit = np.polyfit(right_y, right_x, 2)
 
-    plot_y = np.linspace(0, transformed_image.shape[0]-1, transformed_image.shape[0])
     left_fit_x = left_fit[0] * plot_y ** 2 + left_fit[1] * plot_y + left_fit[2]
     right_fit_x = right_fit[0] * plot_y ** 2 + right_fit[1] * plot_y + right_fit[2]
 
     lines_image[left_y, left_x] = [255, 0 ,0]
     lines_image[right_y, right_x] = [0, 0, 255]
+
+    lines_images.append(lines_image)
+
+    left_line = Line()
+    left_line.bestx = left_fit_x
+    left_line.current_fit = left_fit
+    left_line.allx = left_x
+    left_line.ally = left_y
+
+    right_line = Line()
+    right_line.bestx = right_fit_x
+    right_line.current_fit = right_fit
+    right_line.allx = right_x
+    right_line.ally = right_y
+
+    left_lines.append(left_line)
+    right_lines.append(right_line)
 
     f = plt.figure()
     plt.imshow(lines_image)
@@ -323,4 +359,29 @@ for transformed_image, test_image_filename in zip(transformed_images, test_image
     plt.ylim(720, 0)
     f.savefig("test_lines/" + test_image_filename)
 
-## TODO
+###################################################################################################
+## Compute Curvature
+###################################################################################################
+
+print()
+print("Curvature computation...")
+
+def correct_curve(plot_y, line_x, curve_fit, ympp = 30/720, xmpp = 3.7/700):
+    curve_fit_cr = np.polyfit(plot_y * ympp, line_x * xmpp, 2)
+    return curve_fit_cr
+
+def compute_curvature(curve_fit, y_eval = 0, ympp = 30/720):
+    curvature = ((1 + (2 * curve_fit[0] * y_eval * ympp + curve_fit[1]) ** 2) ** 1.5) / np.absolute(2 * curve_fit[0])
+    return curvature
+
+for line_image, left_line, right_line, test_image_filename in zip(lines_images, left_lines, right_lines, test_images_filenames):
+
+    print("Computing curvature " + test_image_filename)
+
+    left_curve_fit_corrected = correct_curve(plot_y, left_line.bestx, left_line.current_fit)
+    left_line.curvature = compute_curvature(left_curve_fit_corrected, np.max(plot_y))
+    right_curve_fit_corrected = correct_curve(plot_y, right_line.bestx, right_line.current_fit)
+    right_line.curvature = compute_curvature(right_curve_fit_corrected, np.max(plot_y))
+
+    print("Curvature left: " + str(left_line.curvature) + " meters")
+    print("Curvature right: " + str(right_line.curvature) + " meters")
