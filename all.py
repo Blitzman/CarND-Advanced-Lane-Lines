@@ -84,18 +84,6 @@ if test_undistort == True:
         ax2.set_title('Undistorted Image')
         f.savefig("camera_undistorted/" + calibration_filename)
 
-###################################################################################################
-## Load Test Images
-###################################################################################################
-
-test_images_filenames = glob.glob("test_images/*.jpg")
-test_images = []
-
-for test_image_filename in test_images_filenames:
-
-    print("Loading "  + test_image_filename)
-    test_image = mpimg.imread(test_image_filename)
-    test_images.append(test_image)
 
 ###################################################################################################
 ## Pipeline
@@ -118,7 +106,7 @@ def pipeline(img, filename = None):
     if filename != None:
 
         sbs.set_style("dark")
-        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 3))
         ax1.imshow(img)
         ax1.set_title('Original Image')
         ax2.imshow(undistorted_image)
@@ -167,7 +155,7 @@ def pipeline(img, filename = None):
     if filename != None:
 
         sbs.set_style("dark")
-        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 3))
         ax1.set_title('Original Image')
         ax1.imshow(undistorted_image)
         ax2.set_title('Stacked Thresholds')
@@ -404,10 +392,27 @@ def pipeline(img, filename = None):
 
     return result
 
-clip_output_filename = 'project_video_lines.mp4'
-clip_input = VideoFileClip('project_video.mp4')
-clip_output = clip_input.fl_image(pipeline)
-clip_output.write_videofile(clip_output_filename, audio=False)
+###################################################################################################
+## Video Processing
+###################################################################################################
+
+#clip_output_filename = 'project_video_lines.mp4'
+#clip_input = VideoFileClip('project_video.mp4')
+#clip_output = clip_input.fl_image(pipeline)
+#clip_output.write_videofile(clip_output_filename, audio=False)
+
+###################################################################################################
+## Load Test Images
+###################################################################################################
+
+test_images_filenames = glob.glob("test_images/*.jpg")
+test_images = []
+
+for test_image_filename in test_images_filenames:
+
+    print("Loading "  + test_image_filename)
+    test_image = mpimg.imread(test_image_filename)
+    test_images.append(test_image)
 
 for test_image, test_image_filename in zip(test_images, test_images_filenames):
     print("Processing " + test_image_filename)

@@ -27,6 +27,24 @@ The goals / steps of this project are the following:
 [undist_cal9]: ./img/calibration_undistort/calibration9.jpg
 [undist_cal10]: ./img/calibration_undistort/calibration10.jpg
 
+[test_undist1]: ./img/test_undistorted/straight_lines1.jpg
+[test_undist2]: ./img/test_undistorted/straight_lines2.jpg
+[test_undist3]: ./img/test_undistorted/test1.jpg
+[test_undist4]: ./img/test_undistorted/test2.jpg
+[test_undist5]: ./img/test_undistorted/test3.jpg
+[test_undist6]: ./img/test_undistorted/test4.jpg
+[test_undist7]: ./img/test_undistorted/test5.jpg
+[test_undist8]: ./img/test_undistorted/test6.jpg
+
+[test_thresh1]: ./img/test_thresholded/straight_lines1.jpg
+[test_thresh2]: ./img/test_thresholded/straight_lines2.jpg
+[test_thresh3]: ./img/test_thresholded/test1.jpg
+[test_thresh4]: ./img/test_thresholded/test2.jpg
+[test_thresh5]: ./img/test_thresholded/test3.jpg
+[test_thresh6]: ./img/test_thresholded/test4.jpg
+[test_thresh7]: ./img/test_thresholded/test5.jpg
+[test_thresh8]: ./img/test_thresholded/test6.jpg
+
 [image1]: ./examples/undistort_output.png "Undistorted"
 [image2]: ./test_images/test1.jpg "Road Transformed"
 [image3]: ./examples/binary_combo_example.jpg "Binary Example"
@@ -62,14 +80,29 @@ We then used the output `obj_points` and `img_points` to compute the camera cali
 
 #### 1. Provide an example of a distortion-corrected image.
 
-To demonstrate this step, I will describe how I apply the distortion correction to one of the test images like this one:
-![alt text][image2]
+The first step of the pipeline consists of applying the calibration information to correct distortion on the test images using `cv2.undistort()` as we did before. To demonstrate this step, we provide the results of applying distortion correction to the provided test images:
+
+![test_undist1][test_undist1]
+![test_undist2][test_undist2]
+![test_undist3][test_undist3]
+![test_undist4][test_undist4]
+![test_undist5][test_undist5]
+![test_undist6][test_undist6]
+![test_undist7][test_undist7]
+![test_undist8][test_undist8]
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
 I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
 
-![alt text][image3]
+![test_thresh1][test_thresh1]
+![test_thresh2][test_thresh2]
+![test_thresh3][test_thresh3]
+![test_thresh4][test_thresh4]
+![test_thresh5][test_thresh5]
+![test_thresh6][test_thresh6]
+![test_thresh7][test_thresh7]
+![test_thresh8][test_thresh8]
 
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
