@@ -77,7 +77,7 @@ if test_undistort == True:
 
         # Plot original and undistorted image
         sbs.set_style("dark")
-        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 2))
         ax1.imshow(calibration_img)
         ax1.set_title('Original Image')
         ax2.imshow(undistorted)
