@@ -6,6 +6,8 @@ import seaborn as sbs
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
+from moviepy.editor import VideoFileClip
+
 class Line():
     def __init__ (self):
         self.detected = False
@@ -99,7 +101,7 @@ for test_image_filename in test_images_filenames:
 ## Pipeline
 ###################################################################################################
 
-def pipeline(img, filename):
+def pipeline(img, filename = None):
 
     ###############################################################################################
     ## Undistort Image
@@ -113,14 +115,15 @@ def pipeline(img, filename):
     undistorted_image = cv2.undistort(img, camera_mtx, dist_coeffs, None, camera_mtx)
 
     # Plot original and undistorted image
-    sbs.set_style("dark")
-    f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
-    #f.tight_layout()
-    ax1.imshow(img)
-    ax1.set_title('Original Image')
-    ax2.imshow(undistorted_image)
-    ax2.set_title('Undistorted Image')
-    f.savefig("test_undistorted/" + filename)
+    if filename != None:
+
+        sbs.set_style("dark")
+        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+        ax1.imshow(img)
+        ax1.set_title('Original Image')
+        ax2.imshow(undistorted_image)
+        ax2.set_title('Undistorted Image')
+        f.savefig("test_undistorted/" + filename)
 
     ###################################################################################################
     ## Thresholding
@@ -160,13 +163,16 @@ def pipeline(img, filename):
     thresholded_image = np.zeros_like(x_binary)
     thresholded_image[(x_binary == 1) | (s_binary == 1)] = 1
 
-    sbs.set_style("dark")
-    f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
-    ax1.set_title('Original Image')
-    ax1.imshow(undistorted_image)
-    ax2.set_title('Stacked Thresholds')
-    ax2.imshow(np.uint8(colored_binary * 255.999))
-    f.savefig("test_thresholded/" + filename)
+    # Plot original and thresholded image
+    if filename != None:
+
+        sbs.set_style("dark")
+        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+        ax1.set_title('Original Image')
+        ax1.imshow(undistorted_image)
+        ax2.set_title('Stacked Thresholds')
+        ax2.imshow(np.uint8(colored_binary * 255.999))
+        f.savefig("test_thresholded/" + filename)
 
     ###################################################################################################
     ## Perspective Transform
@@ -210,13 +216,17 @@ def pipeline(img, filename):
     transformed_binary = np.zeros_like(thresholded_image)
     transformed_binary[(transformed_image[:, :, 0] > 0) | (transformed_image[:, :, 1] > 0) | (transformed_image[:, :, 2] > 0)] = 1 
 
-    sbs.set_style("dark")
-    f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
-    ax1.set_title('Original Image')
-    ax1.imshow(thresholded_image)
-    ax2.set_title('Transformed Image')
-    ax2.imshow(np.uint8(transformed_binary * 255.999))
-    f.savefig("test_transformed/" + filename)
+
+    # Plot original and transformed image
+    if filename != None:
+
+        sbs.set_style("dark")
+        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+        ax1.set_title('Original Image')
+        ax1.imshow(thresholded_image)
+        ax2.set_title('Transformed Image')
+        ax2.imshow(np.uint8(transformed_binary * 255.999))
+        f.savefig("test_transformed/" + filename)
 
     ###################################################################################################
     ## Finding Lines
@@ -331,13 +341,16 @@ def pipeline(img, filename):
     right_line.allx = right_x
     right_line.ally = right_y
 
-    f = plt.figure()
-    plt.imshow(lines_image)
-    plt.plot(left_fit_x, plot_y, color='yellow')
-    plt.plot(right_fit_x, plot_y, color='yellow')
-    plt.xlim(0, 1280)
-    plt.ylim(720, 0)
-    f.savefig("test_lines/" + filename)
+    # Plot original and lines image
+    if filename != None:
+
+        f = plt.figure()
+        plt.imshow(lines_image)
+        plt.plot(left_fit_x, plot_y, color='yellow')
+        plt.plot(right_fit_x, plot_y, color='yellow')
+        plt.xlim(0, 1280)
+        plt.ylim(720, 0)
+        f.savefig("test_lines/" + filename)
 
     ###################################################################################################
     ## Compute Curvature
@@ -382,9 +395,19 @@ def pipeline(img, filename):
 
     result = cv2.addWeighted(undistorted_image, 1, new_warp, 0.3, 0)
 
-    f = plt.figure()
-    plt.imshow(result)
-    f.savefig("test_poly/" + filename)
+    # Plot original and reprojected image
+    if filename != None:
+
+        f = plt.figure()
+        plt.imshow(result)
+        f.savefig("test_poly/" + filename)
+
+    return result
+
+clip_output_filename = 'project_video_lines.mp4'
+clip_input = VideoFileClip('project_video.mp4')
+clip_output = clip_input.fl_image(pipeline)
+clip_output.write_videofile(clip_output_filename, audio=False)
 
 for test_image, test_image_filename in zip(test_images, test_images_filenames):
     print("Processing " + test_image_filename)
