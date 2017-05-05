@@ -344,8 +344,8 @@ def pipeline(img, filename = None):
     lines_image = (np.dstack((thresholded_image, thresholded_image, thresholded_image)) * 255).astype(np.uint8).copy()
 
     for left_rect, right_rect in zip(left_r, right_r):
-        cv2.rectangle(lines_image, left_rect[0], left_rect[1], (0, 255, 0), 2)
-        cv2.rectangle(lines_image, right_rect[0], right_rect[1], (0, 255, 0), 2)
+        cv2.rectangle(lines_image, left_rect[0], left_rect[1], (255, 255, 0), 4)
+        cv2.rectangle(lines_image, right_rect[0], right_rect[1], (255, 255, 0), 4)
 
     if left_x.size:
         left_fit = np.polyfit(left_y, left_x, 2)
@@ -399,9 +399,27 @@ def pipeline(img, filename = None):
     right_curve_fit_corrected = correct_curve(plot_y, right_line.bestx, right_line.current_fit)
     right_line.curvature = compute_curvature(right_curve_fit_corrected, np.max(plot_y))
 
+    avg_curvature = (left_line.curvature + right_line.curvature) / 2.0
+
     if filename != None:
         print("Curvature left: " + str(left_line.curvature) + " meters")
         print("Curvature right: " + str(right_line.curvature) + " meters")
+        print("Curvature: " + str(avg_curvature) + " meters")
+
+    ###################################################################################################
+    ## Compute Deviation
+    ###################################################################################################
+
+    left_bottom = left_line.current_fit[0] * transformed_image.shape[0] ** 2 + left_line.current_fit[1] * transformed_image.shape[1] + left_line.current_fit[2]
+    right_bottom = right_line.current_fit[0] * transformed_image.shape[0] ** 2 + right_line.current_fit[1] * transformed_image.shape[1] + right_line.current_fit[2]
+    
+    lane_center = (left_bottom + right_bottom) / 2.0
+
+    lane_deviation = lane_center - transformed_image.shape[1]/2
+    lane_deviation = np.round(lane_deviation / 2.81362, 2)
+
+    if filename != None:
+        print("Deviation: " + str(lane_deviation) + " cm.")
 
     ###################################################################################################
     ## Reprojection
@@ -421,8 +439,13 @@ def pipeline(img, filename = None):
     cv2.fillPoly(color_warp, np.int_([points]), (0, 255, 0))
 
     new_warp = cv2.warpPerspective(color_warp, np.linalg.inv(transformation_matrix), (transformed_image.shape[1], transformed_image.shape[0]))
+    warp_lines = cv2.warpPerspective(lines_image, np.linalg.inv(transformation_matrix), (transformed_image.shape[1], transformed_image.shape[0]))
 
     result = cv2.addWeighted(undistorted_image, 1, new_warp, 0.3, 0)
+    result = cv2.addWeighted(result, 1, warp_lines, 0.3, 0.5)
+
+    cv2.putText(result, "Curvature " + str(avg_curvature), (30, 60), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 2)
+    cv2.putText(result, "Deviation " + str(lane_deviation), (30, 90), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 2)
 
     # Plot original and reprojected image
     if filename != None:
