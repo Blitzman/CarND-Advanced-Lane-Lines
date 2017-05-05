@@ -36,6 +36,15 @@ The goals / steps of this project are the following:
 [test_undist7]: ./img/test_undistorted/test5.jpg
 [test_undist8]: ./img/test_undistorted/test6.jpg
 
+[test_trans1]: ./img/test_transformed/straight_lines1.jpg
+[test_trans2]: ./img/test_transformed/straight_lines2.jpg
+[test_trans3]: ./img/test_transformed/test1.jpg
+[test_trans4]: ./img/test_transformed/test2.jpg
+[test_trans5]: ./img/test_transformed/test3.jpg
+[test_trans6]: ./img/test_transformed/test4.jpg
+[test_trans7]: ./img/test_transformed/test5.jpg
+[test_trans8]: ./img/test_transformed/test6.jpg
+
 [test_thresh1]: ./img/test_thresholded/straight_lines1.jpg
 [test_thresh2]: ./img/test_thresholded/straight_lines2.jpg
 [test_thresh3]: ./img/test_thresholded/test1.jpg
@@ -91,7 +100,30 @@ The first step of the pipeline consists of applying the calibration information 
 ![test_undist7][test_undist7]
 ![test_undist8][test_undist8]
 
-#### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
+
+#### 2. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
+
+The code for the perspective transform includes a function called `perspective_transform()`, which appears in lines 128 through 137 in the file `all.py`. The `perspective_transformr()` function takes as inputs an image (`img`), as well as source (`src_points`) and destination (`dst_points`) points and warps the image accordingly. The source and destination points were hardcoded as follows:
+
+| Source        | Destination   | 
+|:-------------:|:-------------:| 
+| 570, 470      | 320, 0        | 
+| 200, 720      | 320, 720      |
+| 1130, 720     | 980, 720      |
+| 720, 470      | 980, 0        |
+
+We verified that the perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image:
+
+![test_trans1][test_trans1]
+![test_trans2][test_trans2]
+![test_trans3][test_trans3]
+![test_trans4][test_trans4]
+![test_trans5][test_trans5]
+![test_trans6][test_trans6]
+![test_trans7][test_trans7]
+![test_trans8][test_trans8]
+
+#### 3. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
 I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
 
@@ -103,36 +135,6 @@ I used a combination of color and gradient thresholds to generate a binary image
 ![test_thresh6][test_thresh6]
 ![test_thresh7][test_thresh7]
 ![test_thresh8][test_thresh8]
-
-#### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
-
-The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
-
-```python
-src = np.float32(
-    [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    [((img_size[0] / 6) - 10), img_size[1]],
-    [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
-dst = np.float32(
-    [[(img_size[0] / 4), 0],
-    [(img_size[0] / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), 0]])
-```
-
-This resulted in the following source and destination points:
-
-| Source        | Destination   | 
-|:-------------:|:-------------:| 
-| 585, 460      | 320, 0        | 
-| 203, 720      | 320, 720      |
-| 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
-
-I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
-
-![alt text][image4]
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 

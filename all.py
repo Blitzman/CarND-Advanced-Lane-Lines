@@ -77,7 +77,7 @@ if test_undistort == True:
 
         # Plot original and undistorted image
         sbs.set_style("dark")
-        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 2))
+        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 3))
         ax1.imshow(calibration_img)
         ax1.set_title('Original Image')
         ax2.imshow(undistorted)
@@ -154,15 +154,26 @@ def pipeline(img, filename = None):
 
     transformed_image, transformation_matrix = perspective_transform(undistorted_image, src_points, dst_points)
 
+    undistorted_image_lines = undistorted_image.copy()
+    cv2.line(undistorted_image_lines, tuple(src_tl), tuple(src_tr), [0, 0, 255], 8)
+    cv2.line(undistorted_image_lines, tuple(src_tr), tuple(src_br), [0, 0, 255], 8)
+    cv2.line(undistorted_image_lines, tuple(src_br), tuple(src_bl), [0, 0, 255], 8)
+    cv2.line(undistorted_image_lines, tuple(src_bl), tuple(src_tl), [0, 0, 255], 8)
+    transformed_image_lines = transformed_image.copy()
+    cv2.line(transformed_image_lines, tuple(dst_tl), tuple(dst_tr), [0, 0, 255], 8)
+    cv2.line(transformed_image_lines, tuple(dst_tr), tuple(dst_br), [0, 0, 255], 8)
+    cv2.line(transformed_image_lines, tuple(dst_br), tuple(dst_bl), [0, 0, 255], 8)
+    cv2.line(transformed_image_lines, tuple(dst_bl), tuple(dst_tl), [0, 0, 255], 8)
+
     # Plot original and transformed image
     if filename != None:
 
         sbs.set_style("dark")
-        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 3))
         ax1.set_title('Original Image')
-        ax1.imshow(undistorted_image)
+        ax1.imshow(undistorted_image_lines)
         ax2.set_title('Transformed Image')
-        ax2.imshow(transformed_image)
+        ax2.imshow(transformed_image_lines)
         f.savefig("test_transformed/" + filename)
 
 
@@ -274,12 +285,10 @@ def pipeline(img, filename = None):
 
         if (filename != None):
             sbs.set_style("dark")
-            f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
-            ax1.set_title('Original Image')
-            ax1.imshow(np.uint8(img * 255.999))
+            f = plt.figure()
+            plt.title('Histogram')
             plt.plot(histogram)
-            ax2.set_title('Histogram')
-            ax2.imshow(np.uint8(img * 255.999))
+            plt.imshow(np.uint8(img * 255.999))
             f.savefig("test_histogram/" + filename)
 
         return m, l, r
