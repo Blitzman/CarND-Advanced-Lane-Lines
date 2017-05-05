@@ -229,6 +229,7 @@ def pipeline(img, filename = None):
         sobel_l_y = sobel(l_channel, sobel_size, 0, 1, threshold)
 
         binary_output = np.zeros_like(s_channel)
+        ## Y is not taken into account
         binary_output[(sobel_s_x == 1) | (sobel_l_x == 1)] = 1
         return binary_output
 

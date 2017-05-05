@@ -7,8 +7,8 @@ The goals / steps of this project are the following:
 
 * Compute the camera calibration matrix and distortion coefficients given a set of chessboard images.
 * Apply a distortion correction to raw images.
+* Apply a perspective transform to rectify image ("birds-eye view").
 * Use color transforms, gradients, etc., to create a thresholded binary image.
-* Apply a perspective transform to rectify binary image ("birds-eye view").
 * Detect lane pixels and fit to find the lane boundary.
 * Determine the curvature of the lane and vehicle position with respect to center.
 * Warp the detected lane boundaries back onto the original image.
@@ -53,6 +53,24 @@ The goals / steps of this project are the following:
 [test_thresh6]: ./img/test_thresholded/test4.jpg
 [test_thresh7]: ./img/test_thresholded/test5.jpg
 [test_thresh8]: ./img/test_thresholded/test6.jpg
+
+[test_hist1]: ./img/test_histogram/straight_lines1.jpg
+[test_hist2]: ./img/test_histogram/straight_lines2.jpg
+[test_hist3]: ./img/test_histogram/test1.jpg
+[test_hist4]: ./img/test_histogram/test2.jpg
+[test_hist5]: ./img/test_histogram/test3.jpg
+[test_hist6]: ./img/test_histogram/test4.jpg
+[test_hist7]: ./img/test_histogram/test5.jpg
+[test_hist8]: ./img/test_histogram/test6.jpg
+
+[test_lines1]: ./img/test_lines/straight_lines1.jpg
+[test_lines2]: ./img/test_lines/straight_lines2.jpg
+[test_lines3]: ./img/test_lines/test1.jpg
+[test_lines4]: ./img/test_lines/test2.jpg
+[test_lines5]: ./img/test_lines/test3.jpg
+[test_lines6]: ./img/test_lines/test4.jpg
+[test_lines7]: ./img/test_lines/test5.jpg
+[test_lines8]: ./img/test_lines/test6.jpg
 
 [image1]: ./examples/undistort_output.png "Undistorted"
 [image2]: ./test_images/test1.jpg "Road Transformed"
@@ -125,7 +143,13 @@ We verified that the perspective transform was working as expected by drawing th
 
 #### 3. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+We used a combination of color and gradient thresholds to generate a binary image (thresholding steps 184  through 256 in `all.py`). We perform three thresholding operations:
+
+* HSV within ranges [20, 100, 100] and [30, 255, 255] for hue, saturation, and value respectively to segment yellow lines.
+* HSV within ranges [0, 0, 223] and [255, 32, 255] for hue, saturation, and value respectively to segment white lines.
+* Sobel gradient with `kernel_size = 5` and magnitude threshold of [50, 255] for the `x` gradient in HLS color space with L and S channels.
+
+The resulting thresholded test images are shown below (green is yellow HSV thresholding, red is white HSV thresholding, and blue is Sobel thresholding):
 
 ![test_thresh1][test_thresh1]
 ![test_thresh2][test_thresh2]
@@ -138,9 +162,27 @@ I used a combination of color and gradient thresholds to generate a binary image
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+First, we used a histogram of the lower half part of the binary images to detect peaks where lines could possibly start in order to use them as starting points for a sliding window search for the whole line (lines 279 to 295 in `all.py`). The histograms for the binarized (thresholded) test images are shown below:
 
-![alt text][image5]
+![test_hist1][test_hist1]
+![test_hist1][test_hist2]
+![test_hist1][test_hist3]
+![test_hist1][test_hist4]
+![test_hist1][test_hist5]
+![test_hist1][test_hist6]
+![test_hist1][test_hist7]
+![test_hist1][test_hist8]
+
+From that point, we used a sliding window, placed around the line centers (histogram peaks), to find and follow the lines up to the top of the frame (lines 297 to 345 in `all.py`). Then we used the points (centroids of those windows) to fit two quadratic polynomials (lines 347 to 389 in `all.py`), one for each line as shown in the following images (yellow boxes represent the windows, yellow lines are the fitted polynomials, red represents the detected left line whilst blue represents the detected right line).
+
+![test_lines1][test_lines1]
+![test_lines2][test_lines2]
+![test_lines3][test_lines3]
+![test_lines4][test_lines4]
+![test_lines5][test_lines5]
+![test_lines6][test_lines6]
+![test_lines7][test_lines7]
+![test_lines8][test_lines8]
 
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
