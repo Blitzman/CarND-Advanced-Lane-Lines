@@ -454,8 +454,8 @@ def pipeline(img, filename = None):
     result = cv2.addWeighted(undistorted_image, 1, new_warp, 0.3, 0)
     result = cv2.addWeighted(result, 1, warp_lines, 0.3, 0.5)
 
-    cv2.putText(result, "Curvature " + str(avg_curvature), (30, 60), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 2)
-    cv2.putText(result, "Deviation " + str(lane_deviation), (30, 90), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 2)
+    cv2.putText(result, "Curvature " + str(avg_curvature) + " meters", (30, 60), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 3)
+    cv2.putText(result, "Deviation " + str(lane_deviation) + " centimeters", (30, 90), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 3)
 
     # Plot original and reprojected image
     if filename != None:

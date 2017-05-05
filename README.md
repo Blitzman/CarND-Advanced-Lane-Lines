@@ -72,6 +72,15 @@ The goals / steps of this project are the following:
 [test_lines7]: ./img/test_lines/test5.jpg
 [test_lines8]: ./img/test_lines/test6.jpg
 
+[test_poly1]: ./img/test_poly/straight_lines1.jpg
+[test_poly2]: ./img/test_poly/straight_lines2.jpg
+[test_poly3]: ./img/test_poly/test1.jpg
+[test_poly4]: ./img/test_poly/test2.jpg
+[test_poly5]: ./img/test_poly/test3.jpg
+[test_poly6]: ./img/test_poly/test4.jpg
+[test_poly7]: ./img/test_poly/test5.jpg
+[test_poly8]: ./img/test_poly/test6.jpg
+
 [image1]: ./examples/undistort_output.png "Undistorted"
 [image2]: ./test_images/test1.jpg "Road Transformed"
 [image3]: ./examples/binary_combo_example.jpg "Binary Example"
@@ -184,15 +193,26 @@ From that point, we used a sliding window, placed around the line centers (histo
 ![test_lines7][test_lines7]
 ![test_lines8][test_lines8]
 
+It is important to remark that our pipeline checks if any pixel was found for a line and if nothing is found we just keep the line from the previous frame (assuming a small variation).
+
 #### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-I did this in lines # through # in my code in `my_other_file.py`
+Curvature is computed with functions `correct_curve()` and `compute_curvature()` in lines 398 through 404 in `all.py`. First we correct the fitted lines to convert them from pixel space to real-world space. After that, we compute the curvature by using the formula `curvature = (1 + (2 A*y*ympp + B^2)^1.5)/|2A|`, where `ympp` is a constant that defines the amount of meters per pixels in the `y` axis. Then we average the curvatures from both lines to provide the curvature of the lane (line 412 in `all.py`).
+
+In order to compute the position of vehicle with respect to the center of the lane (also known as deviation) we first compute the `x` positions of the starting points of the lines (highest `y` value or lowest part of the image). Then we take their mean to compute the center of the lane. After that, assuming that the camera is centered at the hood of the car, we can assume that the car is at the midpoint of the image so we can use that information to compute the difference with regard to the center of the lane and apply the appropriate correcting factor (`1/2.81362`) to obtain a measurement in centimeters (see lines 423 to 429 in `all.py`).
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+We implemented this step in lines 442 to 467 in `all.py`. We used the `cv2.fillPoly` function to generate a polygon to represent the detected lane (space between the two fitted lines) and then `cv2.warpPerspective` using the inverse matrix from the previous transformation to reproject the detected lane from the top view to the original image view. We used the `cv2.addWeighted` function to overlay the sliding windows (in yellow) and the detected lane (in green) on the original image. Results can be observed in the following images:
 
-![alt text][image6]
+![test_poly1][test_poly1]
+![test_poly2][test_poly2]
+![test_poly3][test_poly3]
+![test_poly4][test_poly4]
+![test_poly5][test_poly5]
+![test_poly6][test_poly6]
+![test_poly7][test_poly7]
+![test_poly8][test_poly8]
 
 ---
 
@@ -200,7 +220,11 @@ I implemented this step in lines # through # in my code in `yet_another_file.py`
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](./project_video.mp4)
+The following video shows the final video output of the pipeline (click to play).
+
+[![ProjectVideo](http://img.youtube.com/vi/LrcTynRHkBo/0.jpg)](https://www.youtube.com/watch?v=LrcTynRHkBo "Self-Driving Car Nanodegree - P4: Advanced Line Finding")
+
+The video can be found [here](./project_video_lines.mp4)
 
 ---
 
@@ -208,4 +232,9 @@ Here's a [link to my video result](./project_video.mp4)
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+The most challenging part of the project was to find an appropriate thresholding mechanism in order to find enough white and yellow lines without including too much information that could make the next steps more difficult. By applying Sobel after warping we were able to easily detect lines based on their `x` gradient which clearly helped capture those details missing with simple color thresholding. This implementation was designed with the principle of keeping it as simple as possible, which is clearly achieved with a low complexity. However, in order to perform well on more challenging videos, a set of enhancements should be implemented. Possible improvements that can be added without significant effort are:
+
+* Convolution-based line finding
+* Line tracking through frames
+* Coefficient smoothing through frames
+* More sanity-checking for the lines
