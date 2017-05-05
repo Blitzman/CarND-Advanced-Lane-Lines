@@ -89,6 +89,9 @@ if test_undistort == True:
 ## Pipeline
 ###################################################################################################
 
+left_line = Line()
+right_line = Line()
+
 def pipeline(img, filename = None):
 
     ###############################################################################################
@@ -97,8 +100,9 @@ def pipeline(img, filename = None):
 
     undistorted_image = None
 
-    print()
-    print("Undistorting...")
+    if filename != None:
+        print()
+        print("Undistorting...")
 
     undistorted_image = cv2.undistort(img, camera_mtx, dist_coeffs, None, camera_mtx)
 
@@ -138,18 +142,53 @@ def pipeline(img, filename = None):
 
         return binary_output
 
+    def threshold_hsv (img, threshold_low = np.array([0, 0, 0]), threshold_high = np.array([255, 255, 255])):
+        hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+        mask = cv2.inRange(hsv, threshold_low, threshold_high)
+
+        binary_output = np.zeros_like(hsv[:, :, 2])
+        binary_output[(mask > 0)] = 1
+        return binary_output
+
+    def sobel (img, sobel_size = 3, sobel_x = 0, sobel_y = 0, threshold = [0, 255]):
+        sobel = cv2.Sobel(img, cv2.CV_64F, sobel_x, sobel_y)
+        abs_sobel = np.absolute(sobel)
+        scaled_sobel = np.uint(255 * abs_sobel / np.max(abs_sobel))
+        binary_output = np.zeros_like(img)
+        binary_output[(scaled_sobel >= threshold[0]) & (scaled_sobel <= threshold[1])] = 1
+        return binary_output
+
+    def threshold_sobel_ls (img, sobel_size = 3, threshold = [0, 255]):
+        hls = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+        s_channel = hls[:, :, 2]
+        l_channel = hls[:, :, 1]
+        
+        sobel_s_x = sobel(s_channel, sobel_size, 1, 0, threshold)
+        sobel_s_y = sobel(s_channel, sobel_size, 0, 1, threshold)
+        sobel_l_x = sobel(l_channel, sobel_size, 1, 0, threshold)
+        sobel_l_y = sobel(l_channel, sobel_size, 0, 1, threshold)
+
+        binary_output = np.zeros_like(s_channel)
+        binary_output[sobel_s_x | sobel_s_y | sobel_l_x | sobel_l_y] = 1
+        return binary_output
+
     thresholded_image = None
 
-    print()
-    print("Thresholding...")
+    if filename != None:
+        print()
+        print("Thresholding...")
 
     x_binary = threshold_x_gradient(undistorted_image, 3, [20, 100])
     s_binary = threshold_hls_s_gradient(undistorted_image, [170, 255])
 
-    colored_binary = np.dstack((np.zeros_like(x_binary), x_binary, s_binary))
+    yellow_binary = threshold_hsv(undistorted_image, np.array([0, 80, 200]), np.array([40, 255, 255]))
+    white_binary = threshold_hsv(undistorted_image, np.array([20, 0, 200]), np.array([255, 80, 255]))
+    sobel_binary = threshold_sobel_ls(undistorted_image, 3, [30, 100])
+
+    colored_binary = np.dstack((np.zeros_like(x_binary), white_binary, yellow_binary, sobel_binary))
 
     thresholded_image = np.zeros_like(x_binary)
-    thresholded_image[(x_binary == 1) | (s_binary == 1)] = 1
+    thresholded_image[(white_binary == 1) | (yellow_binary == 1) | (sobel_binary == 1)] = 1
 
     # Plot original and thresholded image
     if filename != None:
@@ -166,8 +205,9 @@ def pipeline(img, filename = None):
     ## Perspective Transform
     ###################################################################################################
 
-    print()
-    print("Perspective transformations...")
+    if filename != None:
+        print()
+        print("Perspective transformations...")
 
     def perspective_transform(img, src_points, dst_points):
 
@@ -220,8 +260,9 @@ def pipeline(img, filename = None):
     ## Finding Lines
     ###################################################################################################
 
-    print()
-    print("Line finding...")
+    if filename != None:
+        print()
+        print("Line finding...")
 
     def find_peaks (img, filename = None):
     
@@ -294,8 +335,6 @@ def pipeline(img, filename = None):
         return left_rects, left_x, left_y, right_rects, right_x, right_y
 
     lines_image = None
-    left_line = None
-    right_line = None
 
     plot_y = np.linspace(0, transformed_image[0].shape[0]-1, transformed_image[0].shape[0])
 
@@ -308,26 +347,24 @@ def pipeline(img, filename = None):
         cv2.rectangle(lines_image, left_rect[0], left_rect[1], (0, 255, 0), 2)
         cv2.rectangle(lines_image, right_rect[0], right_rect[1], (0, 255, 0), 2)
 
-    left_fit = np.polyfit(left_y, left_x, 2)
-    right_fit = np.polyfit(right_y, right_x, 2)
+    if left_x.size:
+        left_fit = np.polyfit(left_y, left_x, 2)
+        left_fit_x = left_fit[0] * plot_y ** 2 + left_fit[1] * plot_y + left_fit[2]
+        left_line.bestx = left_fit_x
+        left_line.current_fit = left_fit
+        left_line.allx = left_x
+        left_line.ally = left_y
 
-    left_fit_x = left_fit[0] * plot_y ** 2 + left_fit[1] * plot_y + left_fit[2]
-    right_fit_x = right_fit[0] * plot_y ** 2 + right_fit[1] * plot_y + right_fit[2]
+    if right_x.size:
+        right_fit = np.polyfit(right_y, right_x, 2)
+        right_fit_x = right_fit[0] * plot_y ** 2 + right_fit[1] * plot_y + right_fit[2]
+        right_line.bestx = right_fit_x
+        right_line.current_fit = right_fit
+        right_line.allx = right_x
+        right_line.ally = right_y
 
-    lines_image[left_y, left_x] = [255, 0 ,0]
-    lines_image[right_y, right_x] = [0, 0, 255]
-
-    left_line = Line()
-    left_line.bestx = left_fit_x
-    left_line.current_fit = left_fit
-    left_line.allx = left_x
-    left_line.ally = left_y
-
-    right_line = Line()
-    right_line.bestx = right_fit_x
-    right_line.current_fit = right_fit
-    right_line.allx = right_x
-    right_line.ally = right_y
+    lines_image[left_line.ally, left_line.allx] = [255, 0 ,0]
+    lines_image[right_line.ally, right_line.allx] = [0, 0, 255]
 
     # Plot original and lines image
     if filename != None:
@@ -344,8 +381,9 @@ def pipeline(img, filename = None):
     ## Compute Curvature
     ###################################################################################################
 
-    print()
-    print("Curvature computation...")
+    if filename != None:
+        print()
+        print("Curvature computation...")
 
     def correct_curve(plot_y, line_x, curve_fit, ympp = 30/720, xmpp = 3.7/700):
         curve_fit_cr = np.polyfit(plot_y * ympp, line_x * xmpp, 2)
@@ -357,18 +395,21 @@ def pipeline(img, filename = None):
 
     left_curve_fit_corrected = correct_curve(plot_y, left_line.bestx, left_line.current_fit)
     left_line.curvature = compute_curvature(left_curve_fit_corrected, np.max(plot_y))
+
     right_curve_fit_corrected = correct_curve(plot_y, right_line.bestx, right_line.current_fit)
     right_line.curvature = compute_curvature(right_curve_fit_corrected, np.max(plot_y))
 
-    print("Curvature left: " + str(left_line.curvature) + " meters")
-    print("Curvature right: " + str(right_line.curvature) + " meters")
+    if filename != None:
+        print("Curvature left: " + str(left_line.curvature) + " meters")
+        print("Curvature right: " + str(right_line.curvature) + " meters")
 
     ###################################################################################################
     ## Reprojection
     ###################################################################################################
 
-    print()
-    print("Reprojection...")
+    if filename != None:
+        print()
+        print("Reprojection...")
 
     warp_zero = np.zeros_like(transformed_binary).astype(np.uint8)
     color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
@@ -393,15 +434,6 @@ def pipeline(img, filename = None):
     return result
 
 ###################################################################################################
-## Video Processing
-###################################################################################################
-
-#clip_output_filename = 'project_video_lines.mp4'
-#clip_input = VideoFileClip('project_video.mp4')
-#clip_output = clip_input.fl_image(pipeline)
-#clip_output.write_videofile(clip_output_filename, audio=False)
-
-###################################################################################################
 ## Load Test Images
 ###################################################################################################
 
@@ -417,3 +449,12 @@ for test_image_filename in test_images_filenames:
 for test_image, test_image_filename in zip(test_images, test_images_filenames):
     print("Processing " + test_image_filename)
     pipeline(test_image, test_image_filename)
+
+###################################################################################################
+## Video Processing
+###################################################################################################
+
+clip_output_filename = 'project_video_lines.mp4'
+clip_input = VideoFileClip('project_video.mp4')
+clip_output = clip_input.fl_image(pipeline)
+clip_output.write_videofile(clip_output_filename, audio=False)
