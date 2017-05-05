@@ -118,6 +118,55 @@ def pipeline(img, filename = None):
         f.savefig("test_undistorted/" + filename)
 
     ###################################################################################################
+    ## Perspective Transform
+    ###################################################################################################
+
+    if filename != None:
+        print()
+        print("Perspective transformations...")
+
+    def perspective_transform(img, src_points, dst_points):
+
+        img_size = (img.shape[1], img.shape[0])
+        src = np.float32(src_points)
+        dst = np.float32(dst_points)
+
+        M = cv2.getPerspectiveTransform(src, dst)
+        warped = cv2.warpPerspective(img, M, img_size)
+
+        return warped, M
+
+    transformed_image = None
+    transformation_matrix = None
+
+    src_tl = [570, 470]
+    src_tr = [720, 470]
+    src_br = [1130, 720]
+    src_bl = [200, 720]
+
+    dst_tl = [320, 0]
+    dst_tr = [980, 0]
+    dst_br = [980, 720]
+    dst_bl = [320, 720]
+
+    src_points = [src_tl, src_tr, src_br, src_bl]
+    dst_points = [dst_tl, dst_tr, dst_br, dst_bl]
+
+    transformed_image, transformation_matrix = perspective_transform(undistorted_image, src_points, dst_points)
+
+    # Plot original and transformed image
+    if filename != None:
+
+        sbs.set_style("dark")
+        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
+        ax1.set_title('Original Image')
+        ax1.imshow(undistorted_image)
+        ax2.set_title('Transformed Image')
+        ax2.imshow(transformed_image)
+        f.savefig("test_transformed/" + filename)
+
+
+    ###################################################################################################
     ## Thresholding
     ###################################################################################################
 
@@ -169,8 +218,12 @@ def pipeline(img, filename = None):
         sobel_l_y = sobel(l_channel, sobel_size, 0, 1, threshold)
 
         binary_output = np.zeros_like(s_channel)
-        binary_output[sobel_s_x | sobel_s_y | sobel_l_x | sobel_l_y] = 1
+        binary_output[(sobel_s_x == 1) | (sobel_l_x == 1)] = 1
         return binary_output
+
+    def gaussian_blur (img, kernel_size = 3):
+        blurred = cv2.GaussianBlur(img, (kernel_size, kernel_size), 0)
+        return blurred
 
     thresholded_image = None
 
@@ -178,17 +231,18 @@ def pipeline(img, filename = None):
         print()
         print("Thresholding...")
 
-    x_binary = threshold_x_gradient(undistorted_image, 3, [20, 100])
-    s_binary = threshold_hls_s_gradient(undistorted_image, [170, 255])
+    #x_binary = threshold_x_gradient(undistorted_image, 3, [20, 100])
+    #s_binary = threshold_hls_s_gradient(undistorted_image, [170, 255])
 
-    yellow_binary = threshold_hsv(undistorted_image, np.array([0, 80, 200]), np.array([40, 255, 255]))
-    white_binary = threshold_hsv(undistorted_image, np.array([20, 0, 200]), np.array([255, 80, 255]))
-    sobel_binary = threshold_sobel_ls(undistorted_image, 3, [30, 100])
+    yellow_binary = threshold_hsv(transformed_image, np.array([20, 100, 100]), np.array([30, 255, 255]))
+    white_binary = threshold_hsv(transformed_image, np.array([0, 0, 223]), np.array([255, 32, 255]))
+    sobel_binary = threshold_sobel_ls(transformed_image, 5, [50, 255])
 
-    colored_binary = np.dstack((np.zeros_like(x_binary), white_binary, yellow_binary, sobel_binary))
+    colored_binary = np.dstack((white_binary, yellow_binary, sobel_binary))
 
-    thresholded_image = np.zeros_like(x_binary)
+    thresholded_image = np.zeros_like(yellow_binary)
     thresholded_image[(white_binary == 1) | (yellow_binary == 1) | (sobel_binary == 1)] = 1
+    thresholded_image = gaussian_blur(thresholded_image, 25)
 
     # Plot original and thresholded image
     if filename != None:
@@ -196,65 +250,11 @@ def pipeline(img, filename = None):
         sbs.set_style("dark")
         f, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 3))
         ax1.set_title('Original Image')
-        ax1.imshow(undistorted_image)
+        ax1.imshow(transformed_image)
         ax2.set_title('Stacked Thresholds')
         ax2.imshow(np.uint8(colored_binary * 255.999))
         f.savefig("test_thresholded/" + filename)
 
-    ###################################################################################################
-    ## Perspective Transform
-    ###################################################################################################
-
-    if filename != None:
-        print()
-        print("Perspective transformations...")
-
-    def perspective_transform(img, src_points, dst_points):
-
-        img_size = (img.shape[1], img.shape[0])
-        src = np.float32(src_points)
-        dst = np.float32(dst_points)
-
-        M = cv2.getPerspectiveTransform(src, dst)
-        warped = cv2.warpPerspective(img, M, img_size)
-
-        return warped, M
-
-    transformed_image = None
-    transformation_matrix = None
-
-    src_tl = [570, 470]
-    src_tr = [720, 470]
-    src_br = [1130, 720]
-    src_bl = [200, 720]
-
-    dst_tl = [320, 0]
-    dst_tr = [980, 0]
-    dst_br = [980, 720]
-    dst_bl = [320, 720]
-
-    src_points = [src_tl, src_tr, src_br, src_bl]
-    dst_points = [dst_tl, dst_tr, dst_br, dst_bl]
-
-    thresholded_rgb = np.dstack((np.zeros_like(thresholded_image), thresholded_image, thresholded_image, thresholded_image))
-    thresholded_rgb = (np.uint8(thresholded_rgb * 255.999))
-
-    transformed_image, transformation_matrix = perspective_transform(thresholded_rgb, src_points, dst_points)
-
-    transformed_binary = np.zeros_like(thresholded_image)
-    transformed_binary[(transformed_image[:, :, 0] > 0) | (transformed_image[:, :, 1] > 0) | (transformed_image[:, :, 2] > 0)] = 1 
-
-
-    # Plot original and transformed image
-    if filename != None:
-
-        sbs.set_style("dark")
-        f, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 10))
-        ax1.set_title('Original Image')
-        ax1.imshow(thresholded_image)
-        ax2.set_title('Transformed Image')
-        ax2.imshow(np.uint8(transformed_binary * 255.999))
-        f.savefig("test_transformed/" + filename)
 
     ###################################################################################################
     ## Finding Lines
@@ -338,10 +338,10 @@ def pipeline(img, filename = None):
 
     plot_y = np.linspace(0, transformed_image[0].shape[0]-1, transformed_image[0].shape[0])
 
-    mid, left, right = find_peaks(transformed_binary, filename)
-    left_r, left_x, left_y, right_r, right_x, right_y = sliding_window_lines(transformed_binary, left, right)
+    mid, left, right = find_peaks(thresholded_image, filename)
+    left_r, left_x, left_y, right_r, right_x, right_y = sliding_window_lines(thresholded_image, left, right)
 
-    lines_image = (np.dstack((transformed_binary, transformed_binary, transformed_binary)) * 255).astype(np.uint8).copy()
+    lines_image = (np.dstack((thresholded_image, thresholded_image, thresholded_image)) * 255).astype(np.uint8).copy()
 
     for left_rect, right_rect in zip(left_r, right_r):
         cv2.rectangle(lines_image, left_rect[0], left_rect[1], (0, 255, 0), 2)
@@ -411,7 +411,7 @@ def pipeline(img, filename = None):
         print()
         print("Reprojection...")
 
-    warp_zero = np.zeros_like(transformed_binary).astype(np.uint8)
+    warp_zero = np.zeros_like(thresholded_image).astype(np.uint8)
     color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
 
     points_left = np.array([np.transpose(np.vstack([left_line.bestx, plot_y]))])
